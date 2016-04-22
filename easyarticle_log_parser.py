@@ -3,18 +3,15 @@
 from __future__ import unicode_literals
 
 
+import glob, logging, os
 import apache_log_parser
-import glob
-import logging
 
 
-log_file_path = ''
-
-# supported log file formats
+LOG_FILE_PATH = os.environ['EASYART__APACHE_LOG_FILEPATH']
 APACHE_COMBINED="%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\""
-APACHE_COMMON="%h %l %u %t \"%r\" %>s %b"
 
-def gulp(log_file_path=log_file_path, pattern=APACHE_COMBINED):
+
+def gulp(log_file_path=LOG_FILE_PATH, pattern=APACHE_COMBINED):
     """ import and parse log files """
     log_data=[]
     line_parser=apache_log_parser.make_parser(pattern)
