@@ -49,3 +49,15 @@ class Parser(object):
     # end class Parser
 
 
+def parse_log():
+    """ Calls parser. """
+    prsr = Parser()
+    log_data_lst = prsr.gulp()
+    logging.debug( 'len, log_data_lst, `{}`'.format(len(log_data_lst)) )
+    logging.debug( 'first entry, ```{}```'.format(pprint.pformat(log_data_lst[0])) )
+
+    # end def parse_log()
+
+
+if __name__ == '__main__':
+    parse_log()
