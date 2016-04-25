@@ -24,7 +24,10 @@ class Parser(object):
         with open( filepath, 'r' ) as f:
             lines = f.readlines()
             logging.debug( 'found `{}` lines'.format(len(lines)) )
-            for line in lines:
+        for (i, line) in enumerate( lines ):
+            if i%1000 == 0:
+                logging.debug( 'processed `{}` lines'.format(i) )
+            if 'easyarticle' in line:
                 line_data=line_parser( line )
                 log_data_lst.append( line_data )
         return log_data_lst
