@@ -17,19 +17,12 @@ class Parser(object):
         self.APACHE_LOG_FILE_PATH = os.environ['APCH_PRSLG__LOG_PATH']
         self.APACHE_COMBINED_PATTERN = '%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"'
 
-    def gulp( self, APACHE_LOG_FILE_PATH=None, pattern=None ):
-        """ Imports and parses log files.
+    def gulp( self, APACHE_LOG_FILE_PATH=None ):
+        """ Opens log-file, creates list of dcts for entries containing 'easyarticle'
             Called by parse_log() """
-        ( log_data_lst, APACHE_LOG_FILE_PATH, pattern ) = self.get_gulp_vars( APACHE_LOG_FILE_PATH, pattern )
-        line_parser=apache_log_parser.make_parser( pattern )
-        paths = glob.glob( APACHE_LOG_FILE_PATH )
-        # pprint.pprint( 'paths, ```{}```'.format(pprint.pformat(paths)) )
-        logging.debug( 'paths, ```{}```'.format(pprint.pformat(paths)) )
-        for filepath in paths:
-            logging.debug( 'filepath: `{}`'.format(filepath) )
-            file = open( filepath, 'r' )
-            lines = file.readlines()
-            file.close()
+        ( log_data_lst, filepath, line_parser ) = self.get_gulp_vars( APACHE_LOG_FILE_PATH )
+        with open( filepath, 'r' ) as f:
+            lines = f.readlines()
             logging.debug( 'found `{}` lines'.format(len(lines)) )
             for line in lines:
                 line_data=line_parser( line )
@@ -44,7 +37,9 @@ class Parser(object):
             APACHE_LOG_FILE_PATH = self.APACHE_LOG_FILE_PATH
         if pattern is None:
             pattern = self.APACHE_COMBINED_PATTERN
-        return ( log_data_lst, APACHE_LOG_FILE_PATH, pattern )
+        line_parser=apache_log_parser.make_parser( pattern )
+        logging.debug( 'path, ```{}```'.format(APACHE_LOG_FILE_PATH) )
+        return ( log_data_lst, APACHE_LOG_FILE_PATH, line_parser )
 
     # end class Parser
 
