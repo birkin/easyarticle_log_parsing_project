@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-import glob, logging, os, pprint
+import datetime, json, logging, os, pprint
 import apache_log_parser
 
 
@@ -14,42 +14,46 @@ logging.basicConfig(
 class Parser(object):
 
     def __init__(self):
-        self.APACHE_LOG_FILE_PATH = os.environ['APCH_PRSLG__LOG_PATH']
+        self.APACHE_LOG_FILEPATH = os.environ['APCH_PRSLG__LOG_PATH']
         self.APACHE_COMBINED_PATTERN = '%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"'
+        self.APACHE_COMMON_PATTERN = '%h %l %u %t \"%r\" %>s %b'
+        self.PROCESSED_JSON_FILEPATH = os.environ['APCH_PRSLG__PROCESSED_JSON_PATH']
 
-    def gulp( self, APACHE_LOG_FILE_PATH=None ):
+    def gulp( self, APACHE_LOG_FILEPATH=None ):
         """ Opens log-file, creates list of dcts for entries containing 'easyarticle'
             Called by parse_log() """
-        ( url_lst, extracted_lst, discounted_lst, filepath, line_parser ) = self.get_gulp_vars( APACHE_LOG_FILE_PATH )
+        ( url_lst, extracted_lst, discounted_lst, filepath, line_parser ) = self.get_gulp_vars( APACHE_LOG_FILEPATH )
         with open( filepath, 'r' ) as f:
             lines = f.readlines()
             logging.debug( 'found `{}` lines'.format(len(lines)) )
         for (i, line) in enumerate( lines ):
-            if i%1000 == 0:
+            if i%10000 == 0:
                 logging.debug( 'processed `{}` lines'.format(i) )
             self.process_line( line, line_parser, url_lst, extracted_lst, discounted_lst )
         output_dct = {
             'url_lst': url_lst, 'url_lst_count': len(url_lst), 'extracted_lst': extracted_lst, 'extracted_lst_count': len(extracted_lst), 'discounted_lst': discounted_lst, 'discounted_lst_count': len(discounted_lst) }
         return output_dct
 
-    def get_gulp_vars( self, APACHE_LOG_FILE_PATH=None, pattern=None ):
+    def get_gulp_vars( self, APACHE_LOG_FILEPATH=None, pattern=None ):
         """ Initializes vars.
             Called by gulp() """
         url_lst = []
         extracted_lst = []
         discounted_lst = []
-        if APACHE_LOG_FILE_PATH is None:
-            APACHE_LOG_FILE_PATH = self.APACHE_LOG_FILE_PATH
+        if APACHE_LOG_FILEPATH is None:
+            APACHE_LOG_FILEPATH = self.APACHE_LOG_FILEPATH
         if pattern is None:
-            pattern = self.APACHE_COMBINED_PATTERN
+            # pattern = self.APACHE_COMBINED_PATTERN
+            pattern = self.APACHE_COMMON_PATTERN
         line_parser=apache_log_parser.make_parser( pattern )
-        logging.debug( 'path, ```{}```'.format(APACHE_LOG_FILE_PATH) )
-        return ( url_lst, extracted_lst, discounted_lst, APACHE_LOG_FILE_PATH, line_parser )
+        logging.debug( 'path, ```{}```'.format(APACHE_LOG_FILEPATH) )
+        return ( url_lst, extracted_lst, discounted_lst, APACHE_LOG_FILEPATH, line_parser )
 
     def process_line( self, line, line_parser, url_lst, extracted_lst, discounted_lst ):
         """ Process logic of line-check.
             Called by gulp() """
         if 'easyarticle' in line:
+            # logging.debug( 'easyarticle string found; line, ```{}```'.format(line) )
             line_data=line_parser( line )
             if 'easyarticle' in line_data.get('request_url_path', ''):
                 if 'login' not in line_data.get('request_url_path', ''):
@@ -68,10 +72,15 @@ def parse_log():
     """ Calls parser. """
     prsr = Parser()
     output_dct = prsr.gulp()
-    # logging.debug( 'first entry, ```{}```'.format(pprint.pformat(extracted_lst[0])) )
     # logging.debug( 'entries, ```{}```'.format(pprint.pformat(output_dct)) )
     logging.debug( 'entries, ```{}```'.format(pprint.pformat(output_dct['url_lst_count'])) )
-    logging.debug( 'entries, ```{}```'.format(pprint.pformat(output_dct['url_lst'])) )
+    logging.debug( 'entries, ```{}```'.format(pprint.pformat(sorted(output_dct['url_lst']))) )
+    with open( prsr.PROCESSED_JSON_FILEPATH, 'w' ) as f:
+        timestamp_key = '{}'.format( unicode(datetime.datetime.now()) ).replace( ' ', '_' )
+        jdct = {
+            timestamp_key: { 'url_lst': sorted(output_dct['url_lst']), 'url_lst_count': len(output_dct['url_lst']) }
+            }
+        f.write( json.dumps(jdct, sort_keys=True, indent=2) )
 
     # end def parse_log()
 
