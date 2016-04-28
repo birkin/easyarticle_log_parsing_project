@@ -69,7 +69,8 @@ class Parser(object):
 
 
 def parse_log():
-    """ Calls parser. """
+    """ Calls Parser(); saves list of openurls to json file.
+        Called by __main__ to gather logs. """
     prsr = Parser()
     output_dct = prsr.gulp()
     # logging.debug( 'entries, ```{}```'.format(pprint.pformat(output_dct)) )
@@ -85,5 +86,50 @@ def parse_log():
     # end def parse_log()
 
 
+class Merger( object ):
+
+    def __init__( self ):
+        self.full_lst = []
+        self.extracts_paths_lst = json.loads( os.environ['APCH_PRSLG__EXTRACTS_DIRECTORY_LIST_JSON'] )
+        self.output_path = os.environ['APCH_PRSLG__ALL_OPENURLS_JSONPATH']
+
+    def merge_extracts( self ):
+        """ Creates list of unique openurls from the different extract runs.
+            Called by __main__ """
+        for directory_path in self.extracts_paths_lst:
+            file_lst_paths = self.grab_filepaths( directory_path )
+            for filepath in file_lst_paths:
+                logging.debug( 'processing file, ```{}```'.format(filepath) )
+                with open( filepath, 'r' ) as f:
+                    jdct = json.loads( f.read() )
+                ( datestamp_key, data_dct_value ) = jdct.items()[0]
+                for openurl in data_dct_value['url_lst']:
+                    if openurl not in self.full_lst:
+                        self.full_lst.append( openurl )
+        self.save_full_list()
+
+    def grab_filepaths( self, directory_path ):
+        """ Returns a lst of filepaths from givin directory.
+            Called by merge_extracts() """
+        filenames = os.listdir( directory_path )
+        filepaths = [ os.path.join(directory_path,filename) for filename in filenames ]
+        logging.debug( 'filepaths, ```{}```'.format(pprint.pformat(filepaths)) )
+        return filepaths
+
+    def save_full_list( self ):
+        """ Saves json file.
+            Called by merge_extracts() """
+        with open( self.output_path, 'w' ) as f:
+            timestamp_key = '{}'.format( unicode(datetime.datetime.now()) ).replace( ' ', '_' )
+            jdct = {
+                timestamp_key: { 'url_lst': sorted(self.full_lst), 'url_lst_count': len(self.full_lst) }
+                }
+            f.write( json.dumps(jdct, sort_keys=True, indent=2) )
+
+    # end class Merger
+
+
 if __name__ == '__main__':
-    parse_log()
+    # parse_log()
+    mrgr = Merger()
+    mrgr.merge_extracts()
