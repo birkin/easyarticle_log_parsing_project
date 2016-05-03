@@ -43,8 +43,8 @@ class Parser(object):
         if APACHE_LOG_FILEPATH is None:
             APACHE_LOG_FILEPATH = self.APACHE_LOG_FILEPATH
         if pattern is None:
-            # pattern = self.APACHE_COMBINED_PATTERN
-            pattern = self.APACHE_COMMON_PATTERN
+            pattern = self.APACHE_COMBINED_PATTERN
+            # pattern = self.APACHE_COMMON_PATTERN
         line_parser=apache_log_parser.make_parser( pattern )
         logging.debug( 'path, ```{}```'.format(APACHE_LOG_FILEPATH) )
         return ( url_lst, extracted_lst, discounted_lst, APACHE_LOG_FILEPATH, line_parser )
@@ -55,12 +55,15 @@ class Parser(object):
         if 'easyarticle' in line:
             # logging.debug( 'easyarticle string found; line, ```{}```'.format(line) )
             line_data=line_parser( line )
+            logging.debug( 'line_data, ```{}```'.format(pprint.pformat(line_data)) )
             if 'easyarticle' in line_data.get('request_url_path', ''):
                 if 'login' not in line_data.get('request_url_path', ''):
                     if len(line_data.get('request_url_query', '')) > 0:  # if there's a good path and querystring...
                         extracted_lst.append( line_data )  # grab it
                         if line_data['request_url_query'] not in url_lst:
                             url_lst.append( line_data['request_url_query'] )
+                            if len( url_lst ) > 2:
+                                raise Exception( 'done' )
             else:
                 discounted_lst.append( line_data )  # otherwise save it for a cursory look
         return
@@ -130,6 +133,6 @@ class Merger( object ):
 
 
 if __name__ == '__main__':
-    # parse_log()
-    mrgr = Merger()
-    mrgr.merge_extracts()
+    parse_log()
+    # mrgr = Merger()
+    # mrgr.merge_extracts()
